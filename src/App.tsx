@@ -887,7 +887,7 @@ function App() {
                     <Button
                       onClick={() => {
                         console.log("clickinfo =" + clickInfo);
-                        //deleteLocation(clickInfo.properties.id);
+                        deleteLocation(clickInfo.properties.id);
                         setShowPopup(false);
                       }}
                     >
