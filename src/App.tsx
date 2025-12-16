@@ -92,7 +92,7 @@ type DataT = {
     coordinates: [number, number, number];
   };
   properties: {
-    track: number;
+    track: string;
     type: string;
     status: string;
     date: string;
@@ -136,7 +136,7 @@ function App() {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   //const [report, setReport] = useState("");
-  const [track, setTrack] = useState<number>();
+  const [track, setTrack] = useState<string>("");
   const [type, setType] = useState<string>("water");
   const [diameter, setDiameter] = useState<number>();
   const [length, setLength] = useState<number>();
@@ -379,7 +379,7 @@ function App() {
   };
 
   const handleTrack = (e: ChangeEvent<HTMLInputElement>) => {
-    setTrack(parseInt(e.target.value));
+    setTrack((e.target.value));
   };
 
   const handleSelectChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -637,7 +637,7 @@ function App() {
         //width="150%"
         />
         <input
-          type="number"
+          type="text"
           value={track}
           placeholder="track"
           onChange={handleTrack}
