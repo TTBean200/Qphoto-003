@@ -5,13 +5,13 @@ import { checkLoginAndGetName } from "./utils/AuthUtils";
 import { useAuthenticator } from '@aws-amplify/ui-react';
 import { generateClient } from "aws-amplify/data";
 import "@aws-amplify/ui-react/styles.css";
-import { uploadData, remove } from "aws-amplify/storage";
+import { uploadData, remove, getUrl } from "aws-amplify/storage";
 import { StorageImage } from "@aws-amplify/ui-react-storage"; //Hong
 import { MapboxOverlay, MapboxOverlayProps } from "@deck.gl/mapbox/typed";
 import { PickingInfo } from "@deck.gl/core/typed";
 import { type SearchCriteria } from "./components/Types";
 import SearchComponent from "./components/SearchComponent";
-
+import { getContentType } from "./utils/AppUtils";
 
 import "maplibre-gl/dist/maplibre-gl.css"; // Import maplibre-gl styles
 import {
@@ -609,38 +609,61 @@ function App() {
   }
 
    async function handleSubmit(event: SyntheticEvent, id: string) {
-    event.preventDefault();
-    //console.log(id);
-    //console.log(userName);
+      event.preventDefault();
 
-    if (userName) {
-      let placePhotosUrls: string[] = [];
-      console.log("before submit, photoes size ", placePhotos.length);
-      const uploadResult = await uploadPhotos(placePhotos, id)   //Hong
-      placePhotosUrls = uploadResult.urls;
-
-      const currentLoc= await client.models.Location.get( {
-         id: id
-      })
-
-      let revised:string[] = []
-      if ( currentLoc.data?.photos) {
-         currentLoc.data.photos.forEach( 
-           (d)=>{
-              d? revised.push(d):null
-           }
-         )
+      if (!userName) {
+        alert('please log in to upload.')
+        return;
+      }
+      
+      let toUploadFileNames:string[]=[]
+      
+      if (placePhotos.length===0) {
+          alert("no file selected to upload")
+          return;
+      } else {
+          placePhotos.forEach( (f) => {toUploadFileNames.push(f.name)})
       }
 
-      await client.models.Location.update({
-        id: id,
-        photos: [...placePhotosUrls,...revised]
 
-      })
+      try {
+          let storagePhotoRevised:string[]=[]
 
+          //check overwritten
+          const currentLoc= await client.models.Location.get( {
+              id: id
+          })   
+            
+          if (currentLoc?.data?.photos) {
+               currentLoc.data.photos.forEach( (item) => {
 
-      clearFields();
-    }
+                  if (item && item !==undefined)  {
+                    if (toUploadFileNames.includes(item.split('/').pop()!)) 
+                      alert( `photo ${item} exists and will be overwritten`)
+                    else 
+                      storagePhotoRevised.push(item)
+                  }  
+                })
+          }
+
+          let placePhotosUrls: string[] = [];
+          console.log("before submit, photoes size ", placePhotos.length);
+          const uploadResult = await uploadPhotos(placePhotos, id)   //Hong
+          placePhotosUrls = uploadResult.urls;
+
+          await client.models.Location.update({
+          id: id,
+          photos: [...placePhotosUrls,...storagePhotoRevised]
+
+        })
+
+        clearFields();
+
+      } catch (error) {
+          console.log('erorr to get current location data', error)
+      }//end try block
+        
+      
   }
 
   function clearFields() {
@@ -648,7 +671,7 @@ function App() {
     setPlacePhotos([]);
   }
 
-  async function uploadPhotos(files: File[], id: string): Promise<{
+   async function uploadPhotos(files: File[], id: string): Promise<{
     urls: string[]
 
   }> {
@@ -658,18 +681,33 @@ function App() {
 
     for (const file of files) {
       console.log(`uploading file ${file.name}`)
-      const result = await uploadData({
-        data: file,
-        path: `originals/${id}/${file.name}`
-      }).result
-      urls.push(result.path);
-      console.log('url is ', urls);
+      const contentType=getContentType(file.name)
+
+      if (contentType.startsWith('image')) {
+
+        const result = await uploadData({
+          data: file,
+          path: `originals/${id}/${file.name}`,
+          options: {
+              contentType: contentType, // Crucial for PDFs
+          }
+        }).result
+        urls.push(result.path);
+        console.log('url is ', urls);
+      } else {
+        const result = await uploadData({
+          data: file,
+          path: `originals/${id}/files/${file.name}`,
+          options: {
+              contentType: contentType, // Crucial for PDFs
+          }
+        }).result
+        urls.push(result.path);
+                    
+      }
 
     }
-    return {
-      urls,
-
-    };
+    return { urls };
   }
 
   //Hong's addition
@@ -746,7 +784,6 @@ function App() {
 
   function renderPhotos() {
 
-
     console.log(" render photos is called")
     const rows: any[] = []
 
@@ -763,11 +800,36 @@ function App() {
                   <h4>Date: {loc.date}  &nbsp; &nbsp;&nbsp; Description: {loc.description} 
                   </h4>)
                 loc.photos.forEach((photo, idx ) => {
-                  if (photo) {
-                    rows.push(<StorageImage path={photo} 
-                      alt={photo} key={index*1000+idx} height={300} 
-                      style={{marginLeft: '10px'}}/>)
-                  }
+                  if (photo?.includes('files')) {
+                        rows.push(<iframe id={photo} key={photo} src="#"></iframe>)
+                        //console.log("contain files")
+
+                        const cb=async ()=> {
+                          await getUrl( {path: photo}).then( (data)=>{
+                        
+                            console.log("data url is", data.url.href)
+
+                            const iframeElement = document.getElementById(`${photo}`) as HTMLIFrameElement;
+                            if (iframeElement) {                    
+                              iframeElement.src = data.url.href
+                            } else {
+                              console.error("Iframe element not found!");
+                            }
+                            
+                          })//end getUrl
+                          .catch((error)=>
+                            console.log( "error in getUrl ", error));
+                          
+                        }//end cb
+                        
+                        cb()
+
+                    }else {
+                        if (photo)
+                          rows.push(<StorageImage path={photo} alt={photo} key={photo} height={300} />)
+                        else
+                          console.log("photo is null.")
+                    }
                 })
                  
               }
