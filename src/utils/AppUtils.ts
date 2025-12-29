@@ -1,3 +1,5 @@
+import { getUrl } from "aws-amplify/storage";
+
 export function getContentType( fileName: string) {
 
     const ext= fileName.split('.').pop()?.toLowerCase();
@@ -21,6 +23,23 @@ export function getContentType( fileName: string) {
         }
         return resp
 
+}
+
+export async function getContentUrl( iFrame: HTMLIFrameElement, iPath: string) {
+
+    if (!iFrame || !iPath ) {
+        console.log("Cann't locate iFrame and/or the file path.")
+    }
+
+    await getUrl( {path: iPath}).then( (data)=>{
+
+        iFrame.src=data.url.href
+                            
+        console.log("data url is", data.url.href)
+    })
+    .catch((error)=>
+        console.log( "error in getUrl ", error));              
+                
 }
 
 

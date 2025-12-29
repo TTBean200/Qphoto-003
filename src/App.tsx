@@ -1,5 +1,5 @@
 import type { ChangeEvent, SyntheticEvent } from "react";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef} from "react";
 import type { Schema } from "../amplify/data/resource";
 import { checkLoginAndGetName } from "./utils/AuthUtils";
 import { useAuthenticator } from '@aws-amplify/ui-react';
@@ -11,7 +11,7 @@ import { MapboxOverlay, MapboxOverlayProps } from "@deck.gl/mapbox/typed";
 import { PickingInfo } from "@deck.gl/core/typed";
 import { type SearchCriteria } from "./components/Types";
 import SearchComponent from "./components/SearchComponent";
-import { getContentType } from "./utils/AppUtils";
+import { getContentType, getContentUrl } from "./utils/AppUtils";
 
 import "maplibre-gl/dist/maplibre-gl.css"; // Import maplibre-gl styles
 import {
@@ -479,6 +479,7 @@ function App() {
             async (aPath) => {
                 if (aPath) 
                     try{ 
+                        console.log('plan to delete s3 ', aPath)
                        await remove({ path: aPath })
                     }catch(error) {
                         console.error('Error deleting photoes:', error);
@@ -655,9 +656,10 @@ function App() {
           id: id,
           photos: [...placePhotosUrls,...storagePhotoRevised]
 
-        })
+        }).then( (data)=> {alert('Upload successfully!'); clearFields()})
+        .catch( error => alert("Upload failed. "+error))
 
-        clearFields();
+        //clearFields();
 
       } catch (error) {
           console.log('erorr to get current location data', error)
@@ -713,6 +715,8 @@ function App() {
   //Hong's addition
 
   const [searchParms, setSearchParms] = useState<SearchCriteria>({startDate: '', endDate: ''})
+  
+  
  
   const getSearchCriteria = ( data:SearchCriteria ) => {
 
@@ -803,27 +807,10 @@ function App() {
                   if (photo?.includes('files')) {
                         rows.push(<iframe id={photo} key={photo} src="#"></iframe>)
                         //console.log("contain files")
-
-                        const cb=async ()=> {
-                          await getUrl( {path: photo}).then( (data)=>{
-                        
-                            console.log("data url is", data.url.href)
-
-                            const iframeElement = document.getElementById(`${photo}`) as HTMLIFrameElement;
-                            if (iframeElement) {                    
-                              iframeElement.src = data.url.href
-                            } else {
-                              console.error("Iframe element not found!");
-                            }
-                            
-                          })//end getUrl
-                          .catch((error)=>
-                            console.log( "error in getUrl ", error));
-                          
-                        }//end cb
-                        
-                        cb()
-
+                        getContentUrl(
+                          document.getElementById(`${photo}`) as HTMLIFrameElement,
+                          photo
+                        )
                     }else {
                         if (photo)
                           rows.push(<StorageImage path={photo} alt={photo} key={photo} height={300} />)
