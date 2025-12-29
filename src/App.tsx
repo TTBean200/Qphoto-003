@@ -806,7 +806,8 @@ function App() {
                   </h4>)
                 loc.photos.forEach((photo) => {
                   if (photo?.includes('files')) {
-                        rows.push(<iframe id={photo} key={photo} src="#"></iframe>)
+                        rows.push(<iframe id={photo} key={photo} 
+                          src="data:text/html,<p>Error to load images, please contact support.</p>"></iframe>)
                         //console.log("contain files")
                         getContentUrl(
                           document.getElementById(`${photo}`) as HTMLIFrameElement,
