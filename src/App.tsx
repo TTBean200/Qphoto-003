@@ -1,11 +1,11 @@
 import type { ChangeEvent, SyntheticEvent } from "react";
-import { useEffect, useState, useMemo, useRef} from "react";
+import { useEffect, useState, useMemo} from "react";
 import type { Schema } from "../amplify/data/resource";
 import { checkLoginAndGetName } from "./utils/AuthUtils";
 import { useAuthenticator } from '@aws-amplify/ui-react';
 import { generateClient } from "aws-amplify/data";
 import "@aws-amplify/ui-react/styles.css";
-import { uploadData, remove, getUrl } from "aws-amplify/storage";
+import { uploadData, remove } from "aws-amplify/storage";
 import { StorageImage } from "@aws-amplify/ui-react-storage"; //Hong
 import { MapboxOverlay, MapboxOverlayProps } from "@deck.gl/mapbox/typed";
 import { PickingInfo } from "@deck.gl/core/typed";
@@ -502,6 +502,7 @@ function App() {
   }
 
   async function deleteLocation(id: string) {
+    console.log("call deleteLocation directly")
     const result = await deleteLocationPhotos(id)
     console.log( "result =", result.response)
     if (result.response == 200 ) {
@@ -656,7 +657,7 @@ function App() {
           id: id,
           photos: [...placePhotosUrls,...storagePhotoRevised]
 
-        }).then( (data)=> {alert('Upload successfully!'); clearFields()})
+        }).then( ()=> {alert('Upload successfully!'); clearFields()})
         .catch( error => alert("Upload failed. "+error))
 
         //clearFields();
@@ -801,9 +802,9 @@ function App() {
               if (loc.photos) {
 
                 rows.push(
-                  <h4>Date: {loc.date}  &nbsp; &nbsp;&nbsp; Description: {loc.description} 
+                  <h4 key={index}>Date: {loc.date}  &nbsp; &nbsp;&nbsp; Description: {loc.description} 
                   </h4>)
-                loc.photos.forEach((photo, idx ) => {
+                loc.photos.forEach((photo) => {
                   if (photo?.includes('files')) {
                         rows.push(<iframe id={photo} key={photo} src="#"></iframe>)
                         //console.log("contain files")
@@ -841,6 +842,24 @@ function App() {
           }
           return {response:200, info:'success'};
     }
+
+  async function deleteLocationAndPhotos(locId: string): Promise<{
+    response: number 
+    info: string
+  }>{
+     
+      const currentLoc= await client.models.Location.get( {
+          id: locId
+      })   
+            
+      if (currentLoc?.data?.photos) {
+         deleteLocation2(locId, currentLoc.data.photos)
+      }else {
+         deleteLocation(locId)
+      }
+      
+      return {response: 200, info:'done'}
+  }//end deleteLocationAndPhotos
 
   //end Hong's addition
 
@@ -1004,7 +1023,10 @@ function App() {
                     <Button
                       onClick={() => {
                         console.log("clickinfo =" + clickInfo);
-                        deleteLocation(clickInfo.properties.id);
+                        
+                        //deleteLocation(clickInfo.properties.id);
+                        deleteLocationAndPhotos(clickInfo.properties.id)
+                        
                         setShowPopup(false);
                       }}
                     >
