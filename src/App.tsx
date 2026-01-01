@@ -5,13 +5,13 @@ import { checkLoginAndGetName } from "./utils/AuthUtils";
 import { useAuthenticator } from '@aws-amplify/ui-react';
 import { generateClient } from "aws-amplify/data";
 import "@aws-amplify/ui-react/styles.css";
-import { uploadData, remove } from "aws-amplify/storage";
+import { uploadData, remove, getUrl } from "aws-amplify/storage";
 import { StorageImage } from "@aws-amplify/ui-react-storage"; //Hong
 import { MapboxOverlay, MapboxOverlayProps } from "@deck.gl/mapbox/typed";
 import { PickingInfo } from "@deck.gl/core/typed";
 import { type SearchCriteria } from "./components/Types";
 import SearchComponent from "./components/SearchComponent";
-import { getContentType, getContentUrl } from "./utils/AppUtils";
+import { getContentType } from "./utils/AppUtils";
 
 import "maplibre-gl/dist/maplibre-gl.css"; // Import maplibre-gl styles
 import {
@@ -787,10 +787,10 @@ function App() {
   }
 
 
+
   function renderPhotos() {
 
-    console.log(" render photos is called")
-    const rows: any[] = []
+       const rows: any[] = []
 
         if (location ) {
 
@@ -809,10 +809,19 @@ function App() {
                         rows.push(<iframe id={photo} key={photo} 
                           src="data:text/html,<p>Error to load images, please contact support.</p>"></iframe>)
                         //console.log("contain files")
-                        getContentUrl(
-                          document.getElementById(`${photo}`) as HTMLIFrameElement,
-                          photo
-                        )
+                        getUrl({path:photo}).then((data)=>
+                          {
+                            const cFrame=document.getElementById(`${photo}`) as HTMLIFrameElement;
+
+                            if (cFrame) {
+                               cFrame.src=data.url.href
+                            }else {
+                                rows.push(<iframe id={photo} key={photo} 
+                                src={data.url.href}></iframe>)
+                            }
+                          }
+                        ).catch( (error) => { console.log( "Error in file viewer ", error)})
+                        
                     }else {
                         if (photo)
                           rows.push(<StorageImage path={photo} alt={photo} key={photo} height={300} />)
@@ -1010,7 +1019,7 @@ function App() {
 
                 />
                 <Marker latitude={lat} longitude={lng} />
-                {clickInfo && (
+                {tab==="1" && clickInfo && (
                   <Popup
                     key={`${clickInfo.geometry.coordinates[0]}-${clickInfo.geometry.coordinates[1]}`}
                     latitude={clickInfo.geometry.coordinates[1]}
@@ -1124,7 +1133,7 @@ function App() {
                       </TableRow>
                       </TableHead>
                       <TableBody>
-                        {location.map((location) => (
+                        {tab==="2" && location.map((location) => (
                           <TableRow
                             onDoubleClick={(e) =>{
                                 console.log( "location photos url =", location.photos)
@@ -1166,7 +1175,7 @@ function App() {
                 <h2>Total Lenght (ft): {totalSum.toFixed(0)} ({totalCount} items)</h2>
 
                 <ul>
-                  {Object.entries(byCategory).map(([cat, v]) => (
+                  {tab==="3" && Object.entries(byCategory).map(([cat, v]) => (
                     <li key={cat}>
                       {cat}: {v.sum.toFixed(0)} feet ({v.count} counts)
                     </li>
@@ -1181,7 +1190,7 @@ function App() {
             content: (<>
               <h3>Photos and Comments</h3>
               <SearchComponent onGetSearchCriteria={getSearchCriteria}/>
-              {renderPhotos()}
+              {tab==="4" && renderPhotos()}
             </>)
           },
         ]}

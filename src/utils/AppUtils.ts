@@ -25,21 +25,21 @@ export function getContentType( fileName: string) {
 
 }
 
-export async function getContentUrl( iFrame: HTMLIFrameElement, iPath: string) {
+// export async function getContentUrl( iFrame: HTMLIFrameElement, iPath: string) {
 
-    if (!iFrame || !iPath ) {
-        console.log("Cann't locate iFrame and/or the file path.")
-    }
+//     if (!iFrame || !iPath ) {
+//         console.log("Cann't locate iFrame and/or the file path.")
+//         return;
+//     }
 
-    await getUrl( {path: iPath}).then( (data)=>{
+//     await getUrl( {path: iPath}).then( (data)=>{
 
-        iFrame.src=data.url.href
-                            
-        console.log("data url is", data.url.href)
-    })
-    .catch((error)=>
-        console.log( "error in getUrl ", error));              
+//         iFrame.src=data.url.href                     
+       
+//     })
+//     .catch((error)=>
+//         console.log( "error in getUrl ", error));              
                 
-}
+// }
 
 
