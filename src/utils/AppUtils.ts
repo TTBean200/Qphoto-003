@@ -1,4 +1,4 @@
-import { getUrl } from "aws-amplify/storage";
+//import { getUrl } from "aws-amplify/storage";
 
 export function getContentType( fileName: string) {
 
